@@ -6757,50 +6757,39 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.addComment = void 0;
 const github = __importStar(__webpack_require__(469));
 const input_1 = __webpack_require__(184);
 const core = __importStar(__webpack_require__(470));
 const constants_1 = __webpack_require__(53);
-function addComment({ client, issueNumber, comment, replacements = {}, }) {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            const interpolated = comment.replace(constants_1.tokenRegex, (match) => {
-                var _a, _b;
-                const property = (_a = match.match(constants_1.propertyRegex)) === null || _a === void 0 ? void 0 : _a.pop();
-                if (!property)
-                    return match;
-                const replacement = (_b = replacements[property]) !== null && _b !== void 0 ? _b : match;
-                return replacement;
-            });
-            yield client.rest.issues.createComment({
-                owner: github.context.repo.owner,
-                repo: github.context.repo.repo,
-                issue_number: issueNumber,
-                body: interpolated,
-            });
+async function addComment({ client, issueNumber, comment, replacements = {}, }) {
+    try {
+        const interpolated = comment.replace(constants_1.tokenRegex, (match) => {
+            var _a, _b;
+            const property = (_a = match.match(constants_1.propertyRegex)) === null || _a === void 0 ? void 0 : _a.pop();
+            if (!property)
+                return match;
+            const replacement = (_b = replacements[property]) !== null && _b !== void 0 ? _b : match;
+            return replacement;
+        });
+        await client.rest.issues.createComment({
+            owner: github.context.repo.owner,
+            repo: github.context.repo.repo,
+            issue_number: issueNumber,
+            body: interpolated,
+        });
+    }
+    catch (error) {
+        if ((error.status === 403 || error.status === 404) &&
+            (0, input_1.continueOnMissingPermissions)() &&
+            error.message.endsWith(`Resource not accessible by integration`)) {
+            core.warning(`couldn't add comment "${comment}": ${constants_1.commonErrorDetailedMessage}`);
         }
-        catch (error) {
-            if ((error.status === 403 || error.status === 404) &&
-                (0, input_1.continueOnMissingPermissions)() &&
-                error.message.endsWith(`Resource not accessible by integration`)) {
-                core.warning(`couldn't add comment "${comment}": ${constants_1.commonErrorDetailedMessage}`);
-            }
-            else {
-                throw new Error(`error adding "${comment}": ${error}`);
-            }
+        else {
+            throw new Error(`error adding "${comment}": ${error}`);
         }
-    });
+    }
 }
 exports.addComment = addComment;
 
@@ -7952,15 +7941,6 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 const core = __importStar(__webpack_require__(470));
 const github = __importStar(__webpack_require__(469));
@@ -7977,41 +7957,38 @@ function getBranchName(ref) {
     }
     return null;
 }
-function main() {
-    return __awaiter(this, void 0, void 0, function* () {
-        const repoToken = core.getInput("repoToken", { required: true });
-        const dirtyLabel = core.getInput("dirtyLabel", { required: true });
-        const removeOnDirtyLabel = core.getInput("removeOnDirtyLabel");
-        const retryAfter = parseInt(core.getInput("retryAfter") || "120", 10);
-        const retryMax = parseInt(core.getInput("retryMax") || "5", 10);
-        const commentOnDirty = core.getInput("commentOnDirty");
-        const commentOnClean = core.getInput("commentOnClean");
-        const isPushEvent = process.env.GITHUB_EVENT_NAME === "push";
-        core.debug(`isPushEvent = ${process.env.GITHUB_EVENT_NAME} === "push"`);
-        const baseRefName = isPushEvent ? getBranchName(github.context.ref) : null;
-        const client = github.getOctokit(repoToken);
-        const dirtyStatuses = yield checkDirty({
-            baseRefName,
-            client,
-            commentOnClean,
-            commentOnDirty,
-            dirtyLabel,
-            removeOnDirtyLabel,
-            after: null,
-            retryAfter,
-            retryMax,
-        });
-        core.setOutput(constants_1.prDirtyStatusesOutputKey, dirtyStatuses);
+async function main() {
+    const repoToken = core.getInput("repoToken", { required: true });
+    const dirtyLabel = core.getInput("dirtyLabel", { required: true });
+    const removeOnDirtyLabel = core.getInput("removeOnDirtyLabel");
+    const retryAfter = parseInt(core.getInput("retryAfter") || "120", 10);
+    const retryMax = parseInt(core.getInput("retryMax") || "5", 10);
+    const commentOnDirty = core.getInput("commentOnDirty");
+    const commentOnClean = core.getInput("commentOnClean");
+    const isPushEvent = process.env.GITHUB_EVENT_NAME === "push";
+    core.debug(`isPushEvent = ${process.env.GITHUB_EVENT_NAME} === "push"`);
+    const baseRefName = isPushEvent ? getBranchName(github.context.ref) : null;
+    const client = github.getOctokit(repoToken);
+    const dirtyStatuses = await checkDirty({
+        baseRefName,
+        client,
+        commentOnClean,
+        commentOnDirty,
+        dirtyLabel,
+        removeOnDirtyLabel,
+        after: null,
+        retryAfter,
+        retryMax,
     });
+    core.setOutput(constants_1.prDirtyStatusesOutputKey, dirtyStatuses);
 }
-function checkDirty(context) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const { after, baseRefName, client, commentOnClean, commentOnDirty, dirtyLabel, removeOnDirtyLabel, retryAfter, retryMax, } = context;
-        if (retryMax <= 0) {
-            core.warning("reached maximum allowed retries");
-            return {};
-        }
-        const query = `
+async function checkDirty(context) {
+    const { after, baseRefName, client, commentOnClean, commentOnDirty, dirtyLabel, removeOnDirtyLabel, retryAfter, retryMax, } = context;
+    if (retryMax <= 0) {
+        core.warning("reached maximum allowed retries");
+        return {};
+    }
+    const query = `
 query openPullRequests($owner: String!, $repo: String!, $after: String, $baseRefName: String) { 
   repository(owner:$owner, name: $repo) { 
     pullRequests(first: 100, after: $after, states: OPEN, baseRefName: $baseRefName) {
@@ -8038,152 +8015,156 @@ query openPullRequests($owner: String!, $repo: String!, $after: String, $baseRef
   }
 }
   `;
-        core.debug(query);
-        const pullsResponse = yield client.graphql(query, {
-            headers: {
-            // merge-info preview causes mergeable to become "UNKNOW" (from "CONFLICTING")
-            // kind of obvious to no rely on experimental features but...yeah
-            //accept: "application/vnd.github.merge-info-preview+json"
-            },
-            after,
-            baseRefName,
-            owner: github.context.repo.owner,
-            repo: github.context.repo.repo,
-        });
-        const { repository: { pullRequests: { nodes: pullRequests, pageInfo }, }, } = pullsResponse;
-        core.debug(JSON.stringify(pullsResponse, null, 2));
-        if (pullRequests.length === 0) {
-            return {};
-        }
-        let dirtyStatuses = {};
-        for (const pullRequest of pullRequests) {
-            core.debug(JSON.stringify(pullRequest, null, 2));
-            const info = (message) => core.info(`for PR "${pullRequest.title}": ${message}`);
-            switch (pullRequest.mergeable) {
-                case "CONFLICTING":
-                    info(`add "${dirtyLabel}", remove "${removeOnDirtyLabel ? removeOnDirtyLabel : `nothing`}"`);
-                    // for labels PRs and issues are the same
-                    const [addedDirtyLabel] = yield Promise.all([
-                        addLabelIfNotExists(dirtyLabel, pullRequest, { client }),
-                        removeOnDirtyLabel
-                            ? removeLabelIfExists(removeOnDirtyLabel, pullRequest, { client })
-                            : Promise.resolve(false),
-                    ]);
-                    if (commentOnDirty !== "" && addedDirtyLabel) {
-                        yield (0, comment_1.addComment)({
-                            comment: commentOnDirty,
-                            issueNumber: pullRequest.number,
-                            client,
-                            replacements: {
-                                author: pullRequest.author.login,
-                            },
-                        });
-                    }
-                    dirtyStatuses[pullRequest.number] = true;
-                    break;
-                case "MERGEABLE":
-                    info(`remove "${dirtyLabel}"`);
-                    const removedDirtyLabel = yield removeLabelIfExists(dirtyLabel, pullRequest, { client });
-                    if (removedDirtyLabel && commentOnClean !== "") {
-                        yield (0, comment_1.addComment)({
-                            comment: commentOnClean,
-                            issueNumber: pullRequest.number,
-                            client,
-                            replacements: {
-                                author: pullRequest.author.login,
-                            },
-                        });
-                    }
-                    // while we removed a particular label once we enter "CONFLICTING"
-                    // we don't add it again because we assume that the removeOnDirtyLabel
-                    // is used to mark a PR as "merge!".
-                    // So we basically require a manual review pass after rebase.
-                    dirtyStatuses[pullRequest.number] = false;
-                    break;
-                case "UNKNOWN":
-                    info(`Retrying after ${retryAfter}s.`);
-                    return new Promise((resolve) => {
-                        setTimeout(() => {
-                            core.info(`retrying with ${retryMax} retries remaining.`);
-                            checkDirty(Object.assign(Object.assign({}, context), { retryMax: retryMax - 1 })).then((newDirtyStatuses) => {
-                                resolve(Object.assign(Object.assign({}, dirtyStatuses), newDirtyStatuses));
-                            });
-                        }, retryAfter * 1000);
-                    });
-                default:
-                    throw new TypeError(`unhandled mergeable state '${pullRequest.mergeable}'`);
-            }
-        }
-        if (pageInfo.hasNextPage) {
-            return Object.assign(Object.assign({}, dirtyStatuses), (yield checkDirty(Object.assign(Object.assign({}, context), { after: pageInfo.endCursor }))));
-        }
-        return dirtyStatuses;
+    core.debug(query);
+    const pullsResponse = await client.graphql(query, {
+        headers: {
+        // merge-info preview causes mergeable to become "UNKNOW" (from "CONFLICTING")
+        // kind of obvious to no rely on experimental features but...yeah
+        //accept: "application/vnd.github.merge-info-preview+json"
+        },
+        after,
+        baseRefName,
+        owner: github.context.repo.owner,
+        repo: github.context.repo.repo,
     });
+    const { repository: { pullRequests: { nodes: pullRequests, pageInfo }, }, } = pullsResponse;
+    core.debug(JSON.stringify(pullsResponse, null, 2));
+    if (pullRequests.length === 0) {
+        return {};
+    }
+    let dirtyStatuses = {};
+    for (const pullRequest of pullRequests) {
+        core.debug(JSON.stringify(pullRequest, null, 2));
+        const info = (message) => core.info(`for PR "${pullRequest.title}": ${message}`);
+        switch (pullRequest.mergeable) {
+            case "CONFLICTING":
+                info(`add "${dirtyLabel}", remove "${removeOnDirtyLabel ? removeOnDirtyLabel : `nothing`}"`);
+                // for labels PRs and issues are the same
+                const [addedDirtyLabel] = await Promise.all([
+                    addLabelIfNotExists(dirtyLabel, pullRequest, { client }),
+                    removeOnDirtyLabel
+                        ? removeLabelIfExists(removeOnDirtyLabel, pullRequest, { client })
+                        : Promise.resolve(false),
+                ]);
+                if (commentOnDirty !== "" && addedDirtyLabel) {
+                    await (0, comment_1.addComment)({
+                        comment: commentOnDirty,
+                        issueNumber: pullRequest.number,
+                        client,
+                        replacements: {
+                            author: pullRequest.author.login,
+                        },
+                    });
+                }
+                dirtyStatuses[pullRequest.number] = true;
+                break;
+            case "MERGEABLE":
+                info(`remove "${dirtyLabel}"`);
+                const removedDirtyLabel = await removeLabelIfExists(dirtyLabel, pullRequest, { client });
+                if (removedDirtyLabel && commentOnClean !== "") {
+                    await (0, comment_1.addComment)({
+                        comment: commentOnClean,
+                        issueNumber: pullRequest.number,
+                        client,
+                        replacements: {
+                            author: pullRequest.author.login,
+                        },
+                    });
+                }
+                // while we removed a particular label once we enter "CONFLICTING"
+                // we don't add it again because we assume that the removeOnDirtyLabel
+                // is used to mark a PR as "merge!".
+                // So we basically require a manual review pass after rebase.
+                dirtyStatuses[pullRequest.number] = false;
+                break;
+            case "UNKNOWN":
+                info(`Retrying after ${retryAfter}s.`);
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        core.info(`retrying with ${retryMax} retries remaining.`);
+                        checkDirty({ ...context, retryMax: retryMax - 1 }).then((newDirtyStatuses) => {
+                            resolve({
+                                ...dirtyStatuses,
+                                ...newDirtyStatuses,
+                            });
+                        });
+                    }, retryAfter * 1000);
+                });
+            default:
+                throw new TypeError(`unhandled mergeable state '${pullRequest.mergeable}'`);
+        }
+    }
+    if (pageInfo.hasNextPage) {
+        return {
+            ...dirtyStatuses,
+            ...(await checkDirty({
+                ...context,
+                after: pageInfo.endCursor,
+            })),
+        };
+    }
+    return dirtyStatuses;
 }
 /**
  * Assumes that the label exists
  * @returns `true` if the label was added, `false` otherwise (e.g. when it already exists)
  */
-function addLabelIfNotExists(labelName, issue, { client }) {
-    return __awaiter(this, void 0, void 0, function* () {
-        core.debug(JSON.stringify(issue, null, 2));
-        const hasLabel = issue.labels.nodes.find((labe) => {
-            return labe.name === labelName;
-        }) !== undefined;
-        if (hasLabel) {
-            core.info(`Issue #${issue.number} already has label '${labelName}'. No need to add.`);
-            return false;
+async function addLabelIfNotExists(labelName, issue, { client }) {
+    core.debug(JSON.stringify(issue, null, 2));
+    const hasLabel = issue.labels.nodes.find((labe) => {
+        return labe.name === labelName;
+    }) !== undefined;
+    if (hasLabel) {
+        core.info(`Issue #${issue.number} already has label '${labelName}'. No need to add.`);
+        return false;
+    }
+    return await client.rest.issues
+        .addLabels({
+        owner: github.context.repo.owner,
+        repo: github.context.repo.repo,
+        issue_number: issue.number,
+        labels: [labelName],
+    })
+        .then(() => true, (error) => {
+        if ((error.status === 403 || error.status === 404) &&
+            (0, input_1.continueOnMissingPermissions)() &&
+            error.message.endsWith(`Resource not accessible by integration`)) {
+            core.warning(`could not add label "${labelName}": ${constants_1.commonErrorDetailedMessage}`);
         }
-        return yield client.rest.issues
-            .addLabels({
-            owner: github.context.repo.owner,
-            repo: github.context.repo.repo,
-            issue_number: issue.number,
-            labels: [labelName],
-        })
-            .then(() => true, (error) => {
-            if ((error.status === 403 || error.status === 404) &&
-                (0, input_1.continueOnMissingPermissions)() &&
-                error.message.endsWith(`Resource not accessible by integration`)) {
-                core.warning(`could not add label "${labelName}": ${constants_1.commonErrorDetailedMessage}`);
-            }
-            else {
-                throw new Error(`error adding "${labelName}": ${error}`);
-            }
-            return false;
-        });
+        else {
+            throw new Error(`error adding "${labelName}": ${error}`);
+        }
+        return false;
     });
 }
-function removeLabelIfExists(labelName, issue, { client }) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const hasLabel = issue.labels.nodes.find((labe) => {
-            return labe.name === labelName;
-        }) !== undefined;
-        if (!hasLabel) {
-            core.info(`Issue #${issue.number} does not have label '${labelName}'. No need to remove.`);
-            return false;
+async function removeLabelIfExists(labelName, issue, { client }) {
+    const hasLabel = issue.labels.nodes.find((labe) => {
+        return labe.name === labelName;
+    }) !== undefined;
+    if (!hasLabel) {
+        core.info(`Issue #${issue.number} does not have label '${labelName}'. No need to remove.`);
+        return false;
+    }
+    return client.rest.issues
+        .removeLabel({
+        owner: github.context.repo.owner,
+        repo: github.context.repo.repo,
+        issue_number: issue.number,
+        name: labelName,
+    })
+        .then(() => true, (error) => {
+        if ((error.status === 403 || error.status === 404) &&
+            (0, input_1.continueOnMissingPermissions)() &&
+            error.message.endsWith(`Resource not accessible by integration`)) {
+            core.warning(`could not remove label "${labelName}": ${constants_1.commonErrorDetailedMessage}`);
         }
-        return client.rest.issues
-            .removeLabel({
-            owner: github.context.repo.owner,
-            repo: github.context.repo.repo,
-            issue_number: issue.number,
-            name: labelName,
-        })
-            .then(() => true, (error) => {
-            if ((error.status === 403 || error.status === 404) &&
-                (0, input_1.continueOnMissingPermissions)() &&
-                error.message.endsWith(`Resource not accessible by integration`)) {
-                core.warning(`could not remove label "${labelName}": ${constants_1.commonErrorDetailedMessage}`);
-            }
-            else if (error.status !== 404) {
-                throw new Error(`error removing "${labelName}": ${error}`);
-            }
-            else {
-                core.info(`On #${issue.number} label "${labelName}" doesn't need to be removed since it doesn't exist on that issue.`);
-            }
-            return false;
-        });
+        else if (error.status !== 404) {
+            throw new Error(`error removing "${labelName}": ${error}`);
+        }
+        else {
+            core.info(`On #${issue.number} label "${labelName}" doesn't need to be removed since it doesn't exist on that issue.`);
+        }
+        return false;
     });
 }
 main().catch((error) => {
