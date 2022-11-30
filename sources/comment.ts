@@ -2,25 +2,37 @@ import * as github from "@actions/github";
 import { continueOnMissingPermissions } from "./input";
 import * as core from "@actions/core";
 import { GitHub } from "./types";
-import { commonErrorDetailedMessage } from "./constants";
+import {
+	commonErrorDetailedMessage,
+	propertyRegex,
+	tokenRegex,
+} from "./constants";
 
 export async function addComment({
 	client,
 	issueNumber,
 	comment,
-	context = {},
+	replacements = {},
 }: {
 	client: GitHub;
 	issueNumber: number;
 	comment: string;
-	context?: { [token: string]: string };
+	replacements?: { [property: string]: string };
 }): Promise<void> {
 	try {
+		const interpolated = comment.replace(tokenRegex, (match) => {
+			const property = match.match(propertyRegex)?.pop();
+			if (!property) return match;
+
+			const replacement = replacements[property] ?? match;
+			return replacement;
+		});
+
 		await client.rest.issues.createComment({
 			owner: github.context.repo.owner,
 			repo: github.context.repo.repo,
 			issue_number: issueNumber,
-			body: comment,
+			body: interpolated,
 		});
 	} catch (error: any) {
 		if (

@@ -168,6 +168,9 @@ query openPullRequests($owner: String!, $repo: String!, $after: String, $baseRef
 						comment: commentOnDirty,
 						issueNumber: pullRequest.number,
 						client,
+						replacements: {
+							author: pullRequest.author.login,
+						},
 					});
 				}
 				dirtyStatuses[pullRequest.number] = true;
@@ -184,6 +187,9 @@ query openPullRequests($owner: String!, $repo: String!, $after: String, $baseRef
 						comment: commentOnClean,
 						issueNumber: pullRequest.number,
 						client,
+						replacements: {
+							author: pullRequest.author.login,
+						},
 					});
 				}
 				// while we removed a particular label once we enter "CONFLICTING"
