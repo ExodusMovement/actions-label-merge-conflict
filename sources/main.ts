@@ -1,9 +1,12 @@
 import * as core from "@actions/core";
 import * as github from "@actions/github";
-
-type GitHub = ReturnType<typeof github.getOctokit>;
-const prDirtyStatusesOutputKey = `prDirtyStatuses`;
-const commonErrorDetailedMessage = `Worflows can't access secrets and have read-only access to upstream when they are triggered by a pull request from a fork, [more information](https://docs.github.com/en/actions/configuring-and-managing-workflows/authenticating-with-the-github_token#permissions-for-the-github_token)`;
+import { continueOnMissingPermissions } from "./input";
+import { addComment } from "./comment";
+import { CheckDirtyContext, GitHub } from "./types";
+import {
+	commonErrorDetailedMessage,
+	prDirtyStatusesOutputKey,
+} from "./constants";
 
 /**
  * returns `null` if the ref isn't a branch but e.g. a tag
@@ -46,25 +49,6 @@ async function main() {
 	core.setOutput(prDirtyStatusesOutputKey, dirtyStatuses);
 }
 
-const continueOnMissingPermissions = () =>
-	core.getInput("continueOnMissingPermissions") === "true" || false;
-
-interface CheckDirtyContext {
-	after: string | null;
-	baseRefName: string | null;
-	client: GitHub;
-	commentOnClean: string;
-	commentOnDirty: string;
-	dirtyLabel: string;
-	removeOnDirtyLabel: string;
-	/**
-	 * number of seconds after which the mergable state is re-checked
-	 * if it is unknown
-	 */
-	retryAfter: number;
-	// number of allowed retries
-	retryMax: number;
-}
 async function checkDirty(
 	context: CheckDirtyContext
 ): Promise<Record<number, boolean>> {
@@ -93,6 +77,9 @@ async function checkDirty(
 					number: number;
 					permalink: string;
 					title: string;
+					author: {
+						login: string;
+					};
 					updatedAt: string;
 					labels: {
 						nodes: Array<{ name: string }>;
@@ -114,6 +101,9 @@ query openPullRequests($owner: String!, $repo: String!, $after: String, $baseRef
         number
         permalink
         title
+        author {
+          login
+        }
         updatedAt
         labels(first: 100) {
           nodes {
@@ -174,7 +164,11 @@ query openPullRequests($owner: String!, $repo: String!, $after: String, $baseRef
 						: Promise.resolve(false),
 				]);
 				if (commentOnDirty !== "" && addedDirtyLabel) {
-					await addComment(commentOnDirty, pullRequest, { client });
+					await addComment({
+						comment: commentOnDirty,
+						issueNumber: pullRequest.number,
+						client,
+					});
 				}
 				dirtyStatuses[pullRequest.number] = true;
 				break;
@@ -186,7 +180,11 @@ query openPullRequests($owner: String!, $repo: String!, $after: String, $baseRef
 					{ client }
 				);
 				if (removedDirtyLabel && commentOnClean !== "") {
-					await addComment(commentOnClean, pullRequest, { client });
+					await addComment({
+						comment: commentOnClean,
+						issueNumber: pullRequest.number,
+						client,
+					});
 				}
 				// while we removed a particular label once we enter "CONFLICTING"
 				// we don't add it again because we assume that the removeOnDirtyLabel
@@ -324,32 +322,6 @@ async function removeLabelIfExists(
 		);
 }
 
-async function addComment(
-	comment: string,
-	{ number }: { number: number },
-	{ client }: { client: GitHub }
-): Promise<void> {
-	try {
-		await client.rest.issues.createComment({
-			owner: github.context.repo.owner,
-			repo: github.context.repo.repo,
-			issue_number: number,
-			body: comment,
-		});
-	} catch (error: any) {
-		if (
-			(error.status === 403 || error.status === 404) &&
-			continueOnMissingPermissions() &&
-			error.message.endsWith(`Resource not accessible by integration`)
-		) {
-			core.warning(
-				`couldn't add comment "${comment}": ${commonErrorDetailedMessage}`
-			);
-		} else {
-			throw new Error(`error adding "${comment}": ${error}`);
-		}
-	}
-}
 main().catch((error) => {
 	core.error(String(error));
 	core.setFailed(String(error.message));
