@@ -1,4 +1,4 @@
-name: "CI"
+name: 'CI'
 on:
   # So that PRs touching the same files as the push are updated
   push:
@@ -18,7 +18,7 @@ jobs:
         uses: actions/checkout@v3
       - uses: actions/setup-node@v3
         with:
-          node-version: "16"
+          node-version: '16'
       - name: Install dependencies
         run: yarn
       - name: Format
@@ -38,18 +38,18 @@ jobs:
         with:
           # pull_requests don't have access to secrets
           continueOnMissingPermissions: "${{ github.event.action == 'synchronize' }}"
-          dirtyLabel: "PR: needs rebase"
-          removeOnDirtyLabel: "PR: ready to ship"
-          repoToken: "${{ secrets.GITHUB_TOKEN }}"
-          commentOnDirty: "This pull request has conflicts, please resolve those before we can evaluate the pull request."
-          commentOnClean: "Conflicts have been resolved. A maintainer will review the pull request shortly."
+          dirtyLabel: 'PR: needs rebase'
+          removeOnDirtyLabel: 'PR: ready to ship'
+          repoToken: '${{ secrets.GITHUB_TOKEN }}'
+          commentOnDirty: 'This pull request has conflicts, please resolve those before we can evaluate the pull request.'
+          commentOnClean: 'Conflicts have been resolved. A maintainer will review the pull request shortly.'
       - name: Test
         uses: eps1lon/actions-label-merge-conflict@main
         with:
           # pull_requests don't have access to secrets
           continueOnMissingPermissions: "${{ github.event.action == 'synchronize' }}"
-          dirtyLabel: "PR: needs rebase"
-          removeOnDirtyLabel: "PR: ready to ship"
-          repoToken: "${{ secrets.GITHUB_TOKEN }}"
-          commentOnDirty: "This pull request has conflicts, please resolve those before we can evaluate the pull request."
-          commentOnClean: "Conflicts have been resolved. A maintainer will review the pull request shortly."
+          dirtyLabel: 'PR: needs rebase'
+          removeOnDirtyLabel: 'PR: ready to ship'
+          repoToken: '${{ secrets.GITHUB_TOKEN }}'
+          commentOnDirty: 'This pull request has conflicts, please resolve those before we can evaluate the pull request.'
+          commentOnClean: 'Conflicts have been resolved. A maintainer will review the pull request shortly.'

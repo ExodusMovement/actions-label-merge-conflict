@@ -7,7 +7,7 @@ This action adds a given label to Pull Requests that have merge conflicts and re
 ## Example usage
 
 ```yaml
-name: "Maintenance"
+name: 'Maintenance'
 on:
   # So that PRs touching the same files as the push are updated
   push:
@@ -24,11 +24,11 @@ jobs:
       - name: check if prs are dirty
         uses: eps1lon/actions-label-merge-conflict@releases/2.x
         with:
-          dirtyLabel: "PR: needs rebase"
-          removeOnDirtyLabel: "PR: ready to ship"
-          repoToken: "${{ secrets.GITHUB_TOKEN }}"
-          commentOnDirty: "This pull request has conflicts, please resolve those before we can evaluate the pull request."
-          commentOnClean: "Conflicts have been resolved. A maintainer will review the pull request shortly."
+          dirtyLabel: 'PR: needs rebase'
+          removeOnDirtyLabel: 'PR: ready to ship'
+          repoToken: '${{ secrets.GITHUB_TOKEN }}'
+          commentOnDirty: 'This pull request has conflicts, please resolve those before we can evaluate the pull request.'
+          commentOnClean: 'Conflicts have been resolved. A maintainer will review the pull request shortly.'
 ```
 
 You can use `eps1lon/actions-label-merge-conflict@main` instead to get the latest, experimental version.
