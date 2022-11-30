@@ -2,7 +2,7 @@ import * as core from "@actions/core";
 import * as github from "@actions/github";
 import { continueOnMissingPermissions } from "./input";
 import { addComment } from "./comment";
-import { CheckDirtyContext, GitHub } from "./types";
+import { CheckDirtyContext, GitHub, RepositoryResponse } from "./types";
 import {
 	commonErrorDetailedMessage,
 	prDirtyStatusesOutputKey,
@@ -69,29 +69,6 @@ async function checkDirty(
 		return {};
 	}
 
-	interface RepositoryResponse {
-		repository: {
-			pullRequests: {
-				nodes: Array<{
-					mergeable: string;
-					number: number;
-					permalink: string;
-					title: string;
-					author: {
-						login: string;
-					};
-					updatedAt: string;
-					labels: {
-						nodes: Array<{ name: string }>;
-					};
-				}>;
-				pageInfo: {
-					endCursor: string;
-					hasNextPage: boolean;
-				};
-			};
-		};
-	}
 	const query = `
 query openPullRequests($owner: String!, $repo: String!, $after: String, $baseRefName: String) { 
   repository(owner:$owner, name: $repo) { 
@@ -120,7 +97,7 @@ query openPullRequests($owner: String!, $repo: String!, $after: String, $baseRef
 }
   `;
 	core.debug(query);
-	const pullsResponse = await client.graphql(query, {
+	const pullsResponse = await client.graphql<RepositoryResponse>(query, {
 		headers: {
 			// merge-info preview causes mergeable to become "UNKNOW" (from "CONFLICTING")
 			// kind of obvious to no rely on experimental features but...yeah
@@ -136,7 +113,7 @@ query openPullRequests($owner: String!, $repo: String!, $after: String, $baseRef
 		repository: {
 			pullRequests: { nodes: pullRequests, pageInfo },
 		},
-	} = pullsResponse as RepositoryResponse;
+	} = pullsResponse;
 	core.debug(JSON.stringify(pullsResponse, null, 2));
 
 	if (pullRequests.length === 0) {

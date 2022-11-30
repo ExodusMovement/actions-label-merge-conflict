@@ -18,3 +18,27 @@ export interface CheckDirtyContext {
 	// number of allowed retries
 	retryMax: number;
 }
+
+export interface RepositoryResponse {
+	repository: {
+		pullRequests: {
+			nodes: Array<{
+				mergeable: string;
+				number: number;
+				permalink: string;
+				title: string;
+				author: {
+					login: string;
+				};
+				updatedAt: string;
+				labels: {
+					nodes: Array<{ name: string }>;
+				};
+			}>;
+			pageInfo: {
+				endCursor: string;
+				hasNextPage: boolean;
+			};
+		};
+	};
+}
