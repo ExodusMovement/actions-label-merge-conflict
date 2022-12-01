@@ -1,4 +1,4 @@
-import * as core from "@actions/core";
+import * as core from '@actions/core'
 
 export const continueOnMissingPermissions = () =>
-	core.getInput("continueOnMissingPermissions") === "true" || false;
+  core.getInput('continueOnMissingPermissions') === 'true' || false
