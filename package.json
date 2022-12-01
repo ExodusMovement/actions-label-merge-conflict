@@ -10,7 +10,7 @@
     "lint:fix": "yarn lint --fix",
     "test": "jest",
     "format": "prettier \"**/*.{js,json,md,ts,yml}\" --ignore-path .eslintignore --write",
-    "format:check": "prettier --check \"**/*.{js,json,md,ts,yml}\" --loglevel warn"
+    "format:check": "prettier --check \"**/*.{js,json,md,ts,yml}\" --ignore-path .eslintignore --loglevel warn"
   },
   "devDependencies": {
     "@actions/core": "1.10.0",
