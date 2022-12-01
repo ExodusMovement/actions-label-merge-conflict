@@ -1,9 +1,12 @@
 import * as core from "@actions/core";
 import * as github from "@actions/github";
-
-type GitHub = ReturnType<typeof github.getOctokit>;
-const prDirtyStatusesOutputKey = `prDirtyStatuses`;
-const commonErrorDetailedMessage = `Worflows can't access secrets and have read-only access to upstream when they are triggered by a pull request from a fork, [more information](https://docs.github.com/en/actions/configuring-and-managing-workflows/authenticating-with-the-github_token#permissions-for-the-github_token)`;
+import { continueOnMissingPermissions } from "./input";
+import { addComment } from "./comment";
+import { CheckDirtyContext, GitHub, RepositoryResponse } from "./types";
+import {
+	commonErrorDetailedMessage,
+	prDirtyStatusesOutputKey,
+} from "./constants";
 
 /**
  * returns `null` if the ref isn't a branch but e.g. a tag
@@ -46,25 +49,6 @@ async function main() {
 	core.setOutput(prDirtyStatusesOutputKey, dirtyStatuses);
 }
 
-const continueOnMissingPermissions = () =>
-	core.getInput("continueOnMissingPermissions") === "true" || false;
-
-interface CheckDirtyContext {
-	after: string | null;
-	baseRefName: string | null;
-	client: GitHub;
-	commentOnClean: string;
-	commentOnDirty: string;
-	dirtyLabel: string;
-	removeOnDirtyLabel: string;
-	/**
-	 * number of seconds after which the mergable state is re-checked
-	 * if it is unknown
-	 */
-	retryAfter: number;
-	// number of allowed retries
-	retryMax: number;
-}
 async function checkDirty(
 	context: CheckDirtyContext
 ): Promise<Record<number, boolean>> {
@@ -85,26 +69,6 @@ async function checkDirty(
 		return {};
 	}
 
-	interface RepositoryResponse {
-		repository: {
-			pullRequests: {
-				nodes: Array<{
-					mergeable: string;
-					number: number;
-					permalink: string;
-					title: string;
-					updatedAt: string;
-					labels: {
-						nodes: Array<{ name: string }>;
-					};
-				}>;
-				pageInfo: {
-					endCursor: string;
-					hasNextPage: boolean;
-				};
-			};
-		};
-	}
 	const query = `
 query openPullRequests($owner: String!, $repo: String!, $after: String, $baseRefName: String) { 
   repository(owner:$owner, name: $repo) { 
@@ -114,6 +78,9 @@ query openPullRequests($owner: String!, $repo: String!, $after: String, $baseRef
         number
         permalink
         title
+        author {
+          login
+        }
         updatedAt
         labels(first: 100) {
           nodes {
@@ -130,7 +97,7 @@ query openPullRequests($owner: String!, $repo: String!, $after: String, $baseRef
 }
   `;
 	core.debug(query);
-	const pullsResponse = await client.graphql(query, {
+	const pullsResponse = await client.graphql<RepositoryResponse>(query, {
 		headers: {
 			// merge-info preview causes mergeable to become "UNKNOW" (from "CONFLICTING")
 			// kind of obvious to no rely on experimental features but...yeah
@@ -146,7 +113,7 @@ query openPullRequests($owner: String!, $repo: String!, $after: String, $baseRef
 		repository: {
 			pullRequests: { nodes: pullRequests, pageInfo },
 		},
-	} = pullsResponse as RepositoryResponse;
+	} = pullsResponse;
 	core.debug(JSON.stringify(pullsResponse, null, 2));
 
 	if (pullRequests.length === 0) {
@@ -174,7 +141,14 @@ query openPullRequests($owner: String!, $repo: String!, $after: String, $baseRef
 						: Promise.resolve(false),
 				]);
 				if (commentOnDirty !== "" && addedDirtyLabel) {
-					await addComment(commentOnDirty, pullRequest, { client });
+					await addComment({
+						comment: commentOnDirty,
+						issueNumber: pullRequest.number,
+						client,
+						replacements: {
+							author: pullRequest.author.login,
+						},
+					});
 				}
 				dirtyStatuses[pullRequest.number] = true;
 				break;
@@ -186,7 +160,14 @@ query openPullRequests($owner: String!, $repo: String!, $after: String, $baseRef
 					{ client }
 				);
 				if (removedDirtyLabel && commentOnClean !== "") {
-					await addComment(commentOnClean, pullRequest, { client });
+					await addComment({
+						comment: commentOnClean,
+						issueNumber: pullRequest.number,
+						client,
+						replacements: {
+							author: pullRequest.author.login,
+						},
+					});
 				}
 				// while we removed a particular label once we enter "CONFLICTING"
 				// we don't add it again because we assume that the removeOnDirtyLabel
@@ -324,32 +305,6 @@ async function removeLabelIfExists(
 		);
 }
 
-async function addComment(
-	comment: string,
-	{ number }: { number: number },
-	{ client }: { client: GitHub }
-): Promise<void> {
-	try {
-		await client.rest.issues.createComment({
-			owner: github.context.repo.owner,
-			repo: github.context.repo.repo,
-			issue_number: number,
-			body: comment,
-		});
-	} catch (error: any) {
-		if (
-			(error.status === 403 || error.status === 404) &&
-			continueOnMissingPermissions() &&
-			error.message.endsWith(`Resource not accessible by integration`)
-		) {
-			core.warning(
-				`couldn't add comment "${comment}": ${commonErrorDetailedMessage}`
-			);
-		} else {
-			throw new Error(`error adding "${comment}": ${error}`);
-		}
-	}
-}
 main().catch((error) => {
 	core.error(String(error));
 	core.setFailed(String(error.message));
