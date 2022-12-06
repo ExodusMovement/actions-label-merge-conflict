@@ -4,8 +4,6 @@ import { continueOnMissingPermissions } from './input'
 import { addComment } from './comment'
 import { CheckDirtyContext, GitHub, RepositoryResponse } from './types'
 import { commonErrorDetailedMessage, prDirtyStatusesOutputKey } from './constants'
-import { util } from 'prettier'
-import skip = util.skip
 
 /**
  * returns `null` if the ref isn't a branch but e.g. a tag
