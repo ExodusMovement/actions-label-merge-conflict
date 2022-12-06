@@ -17,6 +17,7 @@ export interface CheckDirtyContext {
   retryAfter: number
   // number of allowed retries
   retryMax: number
+  skipDraft: boolean
 }
 
 export interface RepositoryResponse {
@@ -27,6 +28,7 @@ export interface RepositoryResponse {
         number: number
         permalink: string
         title: string
+        isDraft: boolean
         author: {
           login: string
         }
