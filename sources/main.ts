@@ -24,6 +24,7 @@ async function main() {
   const retryMax = Number.parseInt(core.getInput('retryMax') || '5', 10)
   const commentOnDirty = core.getInput('commentOnDirty')
   const commentOnClean = core.getInput('commentOnClean')
+  const skipDraft = core.getInput('skipDraft') === 'true'
 
   const isPushEvent = process.env.GITHUB_EVENT_NAME === 'push'
   core.debug(`isPushEvent = ${process.env.GITHUB_EVENT_NAME} === "push"`)
@@ -41,6 +42,7 @@ async function main() {
     after: null,
     retryAfter,
     retryMax,
+    skipDraft,
   })
 
   core.setOutput(prDirtyStatusesOutputKey, dirtyStatuses)
@@ -57,6 +59,7 @@ async function checkDirty(context: CheckDirtyContext): Promise<Record<number, bo
     removeOnDirtyLabel,
     retryAfter,
     retryMax,
+    skipDraft,
   } = context
 
   if (retryMax <= 0) {
@@ -73,6 +76,7 @@ query openPullRequests($owner: String!, $repo: String!, $after: String, $baseRef
         number
         permalink
         title
+        isDraft
         author {
           login
         }
@@ -122,6 +126,9 @@ query openPullRequests($owner: String!, $repo: String!, $after: String, $baseRef
 
     switch (pullRequest.mergeable) {
       case 'CONFLICTING':
+        if (pullRequest.isDraft && skipDraft) {
+          break // only breaking in CONFLICTING case because we're fine with labels being removed
+        }
         info(`add "${dirtyLabel}", remove "${removeOnDirtyLabel || 'nothing'}"`)
         // for labels PRs and issues are the same
         const [addedDirtyLabel] = await Promise.all([
