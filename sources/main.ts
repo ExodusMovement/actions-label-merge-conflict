@@ -1,9 +1,14 @@
 import * as core from '@actions/core'
 import * as github from '@actions/github'
 import { continueOnMissingPermissions } from './input'
-import { addComment } from './comment'
+import { addComment, removeComments } from './comment'
 import { CheckDirtyContext, GitHub, RepositoryResponse } from './types'
-import { commonErrorDetailedMessage, prDirtyStatusesOutputKey } from './constants'
+import {
+  commonErrorDetailedMessage,
+  dirtyCommentIdentifier,
+  prDirtyStatusesOutputKey,
+} from './constants'
+import { createHTMLComment } from './html'
 
 /**
  * returns `null` if the ref isn't a branch but e.g. a tag
@@ -25,6 +30,7 @@ async function main() {
   const commentOnDirty = core.getInput('commentOnDirty')
   const commentOnClean = core.getInput('commentOnClean')
   const skipDraft = core.getInput('skipDraft') === 'true'
+  const removeDirtyComment = core.getInput('removeDirtyComment') === 'true'
 
   const isPushEvent = process.env.GITHUB_EVENT_NAME === 'push'
   core.debug(`isPushEvent = ${process.env.GITHUB_EVENT_NAME} === "push"`)
@@ -37,6 +43,7 @@ async function main() {
     client,
     commentOnClean,
     commentOnDirty,
+    removeDirtyComment,
     dirtyLabel,
     removeOnDirtyLabel,
     after: null,
@@ -54,6 +61,7 @@ async function checkDirty(context: CheckDirtyContext): Promise<Record<number, bo
     baseRefName,
     client,
     commentOnClean,
+    removeDirtyComment,
     commentOnDirty,
     dirtyLabel,
     removeOnDirtyLabel,
@@ -139,7 +147,7 @@ query openPullRequests($owner: String!, $repo: String!, $after: String, $baseRef
         ])
         if (commentOnDirty !== '' && addedDirtyLabel) {
           await addComment({
-            comment: commentOnDirty,
+            comment: `${createHTMLComment(dirtyCommentIdentifier)}\n${commentOnDirty}`,
             issueNumber: pullRequest.number,
             client,
             replacements: {
@@ -151,8 +159,23 @@ query openPullRequests($owner: String!, $repo: String!, $after: String, $baseRef
         break
       case 'MERGEABLE':
         info(`remove "${dirtyLabel}"`)
+        dirtyStatuses[pullRequest.number] = false
+
         const removedDirtyLabel = await removeLabelIfExists(dirtyLabel, pullRequest, { client })
-        if (removedDirtyLabel && commentOnClean !== '') {
+
+        if (!removedDirtyLabel) {
+          break
+        }
+
+        if (removeDirtyComment) {
+          await removeComments({
+            client,
+            issueNumber: pullRequest.number,
+            identifier: dirtyCommentIdentifier,
+          })
+        }
+
+        if (commentOnClean !== '') {
           await addComment({
             comment: commentOnClean,
             issueNumber: pullRequest.number,
@@ -162,11 +185,7 @@ query openPullRequests($owner: String!, $repo: String!, $after: String, $baseRef
             },
           })
         }
-        // while we removed a particular label once we enter "CONFLICTING"
-        // we don't add it again because we assume that the removeOnDirtyLabel
-        // is used to mark a PR as "merge!".
-        // So we basically require a manual review pass after rebase.
-        dirtyStatuses[pullRequest.number] = false
+
         break
       case 'UNKNOWN':
         info(`Retrying after ${retryAfter}s.`)

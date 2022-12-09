@@ -17,6 +17,8 @@ inputs:
     description: 'Boolean. Whether to continue or fail when the provided token is missing permissions. By default pull requests from a fork do not have access to secrets and get a read only github token, resulting in a failure to update tags.'
   commentOnDirty:
     description: 'String. Comment to add when the pull request is conflicting. Supports markdown.'
+  removeDirtyComment:
+    description: 'Boolean. If true, previously created dirty comments will be removed'
   commentOnClean:
     description: 'String. Comment to add when the pull request is not conflicting anymore. Supports markdown.'
   skipDraft:
