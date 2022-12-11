@@ -62,7 +62,7 @@ export async function removeComments({
   })
 
   const toDelete = comments.filter((comment) =>
-    comment.body_text?.includes(createHTMLComment(identifier))
+    comment.body?.includes(createHTMLComment(identifier))
   )
 
   await Promise.all(

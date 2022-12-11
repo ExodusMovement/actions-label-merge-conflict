@@ -86,10 +86,10 @@ describe('removeComments', () => {
     const comments = [
       {
         id: 1,
-        body_text: '<!--actions-label-merge-conflict:dirty-->\n Houston, this is conflict bot...',
+        body: '<!--actions-label-merge-conflict:dirty-->\n Houston, this is conflict bot...',
       },
-      { id: 2, body_text: 'Unrelated comment' },
-      { id: 3, body_text: '<!--actions-label-merge-conflict:dirty-->\n more stuff' },
+      { id: 2, body: 'Unrelated comment' },
+      { id: 3, body: '<!--actions-label-merge-conflict:dirty-->\n more stuff' },
     ] as Comments
 
     when(client.rest.issues.listComments)
