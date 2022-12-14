@@ -2,6 +2,7 @@ import { GitHub } from './types'
 import { addComment, removeComments } from './comment'
 import { when } from 'jest-when'
 import { RestEndpointMethodTypes } from '@octokit/plugin-rest-endpoint-methods/dist-types/generated/parameters-and-response-types'
+import { CommentType } from './constants'
 
 jest.mock('@actions/github', () => ({
   context: {
@@ -33,8 +34,7 @@ describe('addComment', () => {
     await addComment({
       client,
       issueNumber,
-      comment:
-        'Houston, this is Conflict <%= botname %>. We have a conflict. I repeat, we have a conflict. @<%= author %> please rebase. Acknowledge.',
+      body: 'Houston, this is Conflict <%= botname %>. We have a conflict. I repeat, we have a conflict. @<%= author %> please rebase. Acknowledge.',
       replacements: {
         author: 'brucewayne',
         botname: 'Lord Bot',
@@ -53,7 +53,7 @@ describe('addComment', () => {
     await addComment({
       client,
       issueNumber,
-      comment: '<%= person %> does not have a replacement',
+      body: '<%= person %> does not have a replacement',
     })
 
     expect(client.rest.issues.createComment).toHaveBeenCalledWith(
@@ -105,7 +105,11 @@ describe('removeComments', () => {
         data: comments,
       } as RestEndpointMethodTypes['issues']['listComments']['response'])
 
-    await removeComments({ client, issueNumber, identifier: 'actions-label-merge-conflict:dirty' })
+    await removeComments({
+      client,
+      issueNumber,
+      type: CommentType.Dirty,
+    })
 
     expect(client.rest.issues.deleteComment).toHaveBeenCalledTimes(2)
     expect(client.rest.issues.deleteComment).toHaveBeenCalledWith({

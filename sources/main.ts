@@ -1,14 +1,9 @@
 import * as core from '@actions/core'
 import * as github from '@actions/github'
 import { continueOnMissingPermissions } from './input'
-import { addComment, removeComments } from './comment'
+import { addComment, createCommentBody, removeComments } from './comment'
 import { CheckDirtyContext, GitHub, RepositoryResponse } from './types'
-import {
-  commonErrorDetailedMessage,
-  dirtyCommentIdentifier,
-  prDirtyStatusesOutputKey,
-} from './constants'
-import { createHTMLComment } from './html'
+import { CommentType, commonErrorDetailedMessage, prDirtyStatusesOutputKey } from './constants'
 
 /**
  * returns `null` if the ref isn't a branch but e.g. a tag
@@ -147,7 +142,7 @@ query openPullRequests($owner: String!, $repo: String!, $after: String, $baseRef
         ])
         if (commentOnDirty !== '' && addedDirtyLabel) {
           await addComment({
-            comment: `${createHTMLComment(dirtyCommentIdentifier)}\n${commentOnDirty}`,
+            body: createCommentBody(commentOnDirty, CommentType.Dirty),
             issueNumber: pullRequest.number,
             client,
             replacements: {
@@ -171,13 +166,13 @@ query openPullRequests($owner: String!, $repo: String!, $after: String, $baseRef
           await removeComments({
             client,
             issueNumber: pullRequest.number,
-            identifier: dirtyCommentIdentifier,
+            type: CommentType.Dirty,
           })
         }
 
         if (commentOnClean !== '') {
           await addComment({
-            comment: commentOnClean,
+            body: commentOnClean,
             issueNumber: pullRequest.number,
             client,
             replacements: {
