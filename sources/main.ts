@@ -48,6 +48,9 @@ async function main() {
 
   const headRefName = isPullRequestEvent ? baseRefName : null
 
+  core.debug(JSON.stringify(payload.pull_request))
+  core.debug(`baseRefName = ${baseRefName}, headRefName = ${headRefName}`)
+
   const client = github.getOctokit(repoToken)
 
   const dirtyStatuses = await checkDirty({
