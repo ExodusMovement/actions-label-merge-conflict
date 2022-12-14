@@ -2,8 +2,9 @@ import * as core from '@actions/core'
 import * as github from '@actions/github'
 import { continueOnMissingPermissions } from './input'
 import { addComment, createCommentBody, removeComments } from './comment'
-import { CheckDirtyContext, GitHub, RepositoryResponse } from './types'
+import { CheckDirtyContext, GitHub } from './types'
 import { CommentType, commonErrorDetailedMessage, prDirtyStatusesOutputKey } from './constants'
+import { getPullRequests } from './pull-request'
 
 /**
  * returns `null` if the ref isn't a branch but e.g. a tag
@@ -70,57 +71,18 @@ async function checkDirty(context: CheckDirtyContext): Promise<Record<number, bo
     return {}
   }
 
-  const query = `
-query openPullRequests($owner: String!, $repo: String!, $after: String, $baseRefName: String) { 
-  repository(owner:$owner, name: $repo) { 
-    pullRequests(first: 100, after: $after, states: OPEN, baseRefName: $baseRefName) {
-      nodes {
-        mergeable
-        number
-        permalink
-        title
-        isDraft
-        author {
-          login
-        }
-        updatedAt
-        labels(first: 100) {
-          nodes {
-            name
-          }
-        }
-      }
-      pageInfo {
-        endCursor
-        hasNextPage
-      }
-    }
-  }
-}
-  `
-  core.debug(query)
-  const pullsResponse = await client.graphql<RepositoryResponse>(query, {
-    headers: {
-      // merge-info preview causes mergeable to become "UNKNOW" (from "CONFLICTING")
-      // kind of obvious to no rely on experimental features but...yeah
-      // accept: "application/vnd.github.merge-info-preview+json"
-    },
+  const { pullRequests, pageInfo } = await getPullRequests({
+    client,
     after,
     baseRefName,
-    owner: github.context.repo.owner,
-    repo: github.context.repo.repo,
   })
 
-  const {
-    repository: {
-      pullRequests: { nodes: pullRequests, pageInfo },
-    },
-  } = pullsResponse
-  core.debug(JSON.stringify(pullsResponse, null, 2))
+  core.debug(JSON.stringify(pullRequests, null, 2))
 
   if (pullRequests.length === 0) {
     return {}
   }
+
   const dirtyStatuses: Record<number, boolean> = {}
   for (const pullRequest of pullRequests) {
     core.debug(JSON.stringify(pullRequest, null, 2))
