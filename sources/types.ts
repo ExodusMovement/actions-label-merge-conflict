@@ -3,9 +3,9 @@ import * as github from '@actions/github'
 export type GitHub = ReturnType<typeof github.getOctokit>
 
 export interface CheckDirtyContext {
-  after: string | null
-  baseRefName: string | null
-  headRefName: string | null
+  after?: string
+  baseRefName?: string
+  headRefName?: string
   client: GitHub
   commentOnClean: string
   commentOnDirty: string

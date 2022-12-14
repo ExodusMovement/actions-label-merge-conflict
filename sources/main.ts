@@ -59,7 +59,6 @@ async function main() {
     removeDirtyComment,
     dirtyLabel,
     removeOnDirtyLabel,
-    after: null,
     retryAfter,
     retryMax,
     skipDraft,

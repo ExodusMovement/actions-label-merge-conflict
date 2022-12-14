@@ -37,9 +37,9 @@ export async function getPullRequests({
   headRefName,
 }: {
   client: GitHub
-  after?: string | null
-  baseRefName?: string | null
-  headRefName?: string | null
+  after?: string
+  baseRefName?: string
+  headRefName?: string
 }) {
   const pullsResponse = await client.graphql<RepositoryResponse>(pullRequestQuery, {
     ...github.context.repo,
