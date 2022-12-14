@@ -44,11 +44,10 @@ async function main() {
 
   const baseRefName = isPushEvent
     ? getBranchName(ref)
-    : getBranchName(payload.pull_request?.head.ref)
+    : payload.pull_request?.head.ref
 
   const headRefName = isPullRequestEvent ? baseRefName : null
 
-  core.debug(JSON.stringify(payload.pull_request))
   core.debug(`baseRefName = ${baseRefName}, headRefName = ${headRefName}`)
 
   const client = github.getOctokit(repoToken)
