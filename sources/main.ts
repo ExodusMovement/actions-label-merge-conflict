@@ -42,9 +42,7 @@ async function main() {
     return
   }
 
-  const baseRefName = isPushEvent
-    ? getBranchName(ref)
-    : payload.pull_request?.head.ref
+  const baseRefName = isPushEvent ? getBranchName(ref) : payload.pull_request?.head.ref
 
   const headRefName = isPullRequestEvent ? baseRefName : null
 
