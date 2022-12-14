@@ -28,14 +28,31 @@ async function main() {
   const skipDraft = core.getInput('skipDraft') === 'true'
   const removeDirtyComment = core.getInput('removeDirtyComment') === 'true'
 
-  const isPushEvent = process.env.GITHUB_EVENT_NAME === 'push'
-  core.debug(`isPushEvent = ${process.env.GITHUB_EVENT_NAME} === "push"`)
-  const baseRefName = isPushEvent ? getBranchName(github.context.ref) : null
+  const { payload, ref, eventName } = github.context
+
+  const isPushEvent = eventName === 'push'
+  const isPullRequestEvent = eventName.startsWith('pull_request')
+
+  core.debug(`eventName = ${eventName}`)
+
+  if (!(isPushEvent || isPullRequestEvent)) {
+    // no other events can create a conflicting state/resolve a conflicting state, so why would we run?
+    core.warning(`action run skipped for irrelevant event ${eventName}`)
+    core.setOutput(prDirtyStatusesOutputKey, {})
+    return
+  }
+
+  const baseRefName = isPushEvent
+    ? getBranchName(ref)
+    : getBranchName(payload.pull_request?.head.ref)
+
+  const headRefName = isPullRequestEvent ? baseRefName : null
 
   const client = github.getOctokit(repoToken)
 
   const dirtyStatuses = await checkDirty({
     baseRefName,
+    headRefName,
     client,
     commentOnClean,
     commentOnDirty,
@@ -55,6 +72,7 @@ async function checkDirty(context: CheckDirtyContext): Promise<Record<number, bo
   const {
     after,
     baseRefName,
+    headRefName,
     client,
     commentOnClean,
     removeDirtyComment,
@@ -76,6 +94,16 @@ async function checkDirty(context: CheckDirtyContext): Promise<Record<number, bo
     after,
     baseRefName,
   })
+
+  if (headRefName) {
+    // headRefName is only set when the workflow is triggered by a pull_request event, the following yields the triggering PR:
+    const { pullRequests: triggering } = await getPullRequests({
+      client,
+      headRefName,
+    })
+
+    pullRequests.push(...triggering)
+  }
 
   core.debug(JSON.stringify(pullRequests, null, 2))
 

@@ -5,6 +5,7 @@ export type GitHub = ReturnType<typeof github.getOctokit>
 export interface CheckDirtyContext {
   after: string | null
   baseRefName: string | null
+  headRefName: string | null
   client: GitHub
   commentOnClean: string
   commentOnDirty: string

@@ -2,9 +2,9 @@ import { GitHub, RepositoryResponse } from './types'
 import * as github from '@actions/github'
 
 const pullRequestQuery = `
-query openPullRequests($owner: String!, $repo: String!, $after: String, $baseRefName: String) { 
+query openPullRequests($owner: String!, $repo: String!, $after: String, $baseRefName: String, $headRefName: String) { 
   repository(owner:$owner, name: $repo) { 
-    pullRequests(first: 100, after: $after, states: OPEN, baseRefName: $baseRefName) {
+    pullRequests(first: 100, after: $after, states: OPEN, baseRefName: $baseRefName, headRefName: $headRefName) {
       nodes {
         mergeable
         number
@@ -34,15 +34,18 @@ export async function getPullRequests({
   client,
   after,
   baseRefName,
+  headRefName,
 }: {
   client: GitHub
-  after: string | null
-  baseRefName: string | null
+  after?: string | null
+  baseRefName?: string | null
+  headRefName?: string | null
 }) {
   const pullsResponse = await client.graphql<RepositoryResponse>(pullRequestQuery, {
     ...github.context.repo,
     after,
     baseRefName,
+    headRefName,
   })
 
   const {
