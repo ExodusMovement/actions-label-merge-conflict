@@ -18,6 +18,8 @@ export interface CheckDirtyContext {
   // number of allowed retries
   retryMax: number
   skipDraft: boolean
+
+  removeDirtyComment: boolean
 }
 
 export interface RepositoryResponse {

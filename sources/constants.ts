@@ -3,3 +3,7 @@ export const commonErrorDetailedMessage = `Worflows can't access secrets and hav
 
 export const tokenRegex = /(<%= ?\S+ ?%>)/g
 export const propertyRegex = /<%= ?(\S+) ?%>/
+
+export enum CommentType {
+  Dirty = 'actions-label-merge-conflict:dirty',
+}
