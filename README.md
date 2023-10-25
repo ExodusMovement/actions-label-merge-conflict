@@ -2,7 +2,36 @@
 
 This action adds a given label to Pull Requests that have merge conflicts and removes a given label from these pull requests
 
-![label lifecycle: open (no label), push to master -> merge conflict -> label: PR needs rebase -> resolve conflicts on PR -> remove label: PR needs rebase](https://raw.githubusercontent.com/eps1lon/actions-label-merge-conflict/master/label-lifecycle.png).
+![label lifecycle: open (no label), push to main -> merge conflict -> label: PR needs rebase -> resolve conflicts on PR -> remove label: PR needs rebase](https://raw.githubusercontent.com/eps1lon/actions-label-merge-conflict/main/label-lifecycle.png).
+
+## Example usage
+
+```yaml
+name: 'Maintenance'
+on:
+  # So that PRs touching the same files as the push are updated
+  push:
+  # So that the `dirtyLabel` is removed if conflicts are resolve
+  # We recommend `pull_request_target` so that github secrets are available.
+  # In `pull_request` we wouldn't be able to change labels of fork PRs
+  pull_request_target:
+    types: [synchronize]
+
+jobs:
+  main:
+    runs-on: ubuntu-latest
+    steps:
+      - name: check if prs are dirty
+        uses: eps1lon/actions-label-merge-conflict@releases/2.x
+        with:
+          dirtyLabel: 'PR: needs rebase'
+          removeOnDirtyLabel: 'PR: ready to ship'
+          repoToken: '${{ secrets.GITHUB_TOKEN }}'
+          commentOnDirty: 'This pull request has conflicts, please resolve those before we can evaluate the pull request.'
+          commentOnClean: 'Conflicts have been resolved. A maintainer will review the pull request shortly.'
+```
+
+You can use `eps1lon/actions-label-merge-conflict@main` instead to get the latest, experimental version.
 
 ## Why?
 
@@ -20,13 +49,15 @@ This actions achieve this with minimal noise (no comment bloat) by adding a labe
 
 **Required** The name of the label that should be added once a PR has merge conflicts.
 
-### `removeOnDirtyLabel`
-
-**Required** The name of the label that should be removed once a PR has merge conflicts.
-
 ### `repoToken`
 
 **Required** Token for the repository. Can be passed in using {{ secrets.GITHUB_TOKEN }}
+
+### `removeOnDirtyLabel`
+
+The name of the label that should be removed once a PR has merge conflicts.
+
+**Default**: No label is removed if a PR is marked as dirty.
 
 ### `retryAfter`
 
@@ -40,29 +71,20 @@ Number of times the script will check the mergable state aigain. After that it w
 
 **Default**: 5
 
-## Example usage
+### `continueOnMissingPermissions`
 
-```yaml
-name: "Maintenance"
-on:
-  # So that PRs touching the same files as the push are updated
-  push:
-  # So that the `dirtyLabel` is removed if conflicts are resolved
-  # WARNING: PRs from forks don't have access to screts.
-  # You might want to skip this action on pull_requests which means
-  # the label might not reflect the current state of the PR until
-  # another push on `master`
-  pull_request:
-    types: [synchronize]
+Boolean. Whether to continue or fail when the provided token is missing permissions. By default pull requests from a fork do not have access to secrets and get a read only github token, resulting in a failure to update tags.
 
-jobs:
-  main:
-    runs-on: ubuntu-latest
-    steps:
-      - name: check if prs are dirty
-        uses: eps1lon/actions-label-merge-conflict@releases/1.x
-        with:
-          dirtyLabel: "PR: needs rebase"
-          removeOnDirtyLabel: "PR: ready to ship"
-          repoToken: "${{ secrets.GITHUB_TOKEN }}"
-```
+**Default**: false
+
+### `commentOnDirty`
+
+String. Comment to add when the pull request is conflicting. Supports markdown.
+
+**Default**: No comment is posted.
+
+### `commentOnClean`
+
+String. Comment to add when the pull request is not conflicting anymore. Supports markdown.
+
+**Default**: No comment is posted.

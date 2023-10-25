@@ -1,23 +1,35 @@
-name: "Label Conflicting Pull Requests"
-description: "This action adds a given label to Pull Requests that have merge conflicts and removes a given label from these pull requests"
+name: 'Label Conflicting Pull Requests'
+description: 'This action adds a given label to Pull Requests that have merge conflicts and removes a given label from these pull requests'
 inputs:
   repoToken:
-    description: "Token for the repository. Can be passed in using {{ secrets.GITHUB_TOKEN }}"
+    description: 'Token for the repository. Can be passed in using {{ secrets.GITHUB_TOKEN }}'
     required: true
   dirtyLabel:
-    description: "Name of the label which indicates that the branch is dirty"
+    description: 'Name of the label which indicates that the branch is dirty'
     required: true
   removeOnDirtyLabel:
-    description: "Name of the label which should be removed"
-    required: true
+    description: 'Name of the label which should be removed'
   retryAfter:
-    description: "Number of seconds after which the action runs again if the mergable state is unknown."
+    description: 'Number of seconds after which the action runs again if the mergable state is unknown.'
   retryMax:
-    description: "Number of times the action retries calculating the mergable state"
+    description: 'Number of times the action retries calculating the mergable state'
+  continueOnMissingPermissions:
+    description: 'Boolean. Whether to continue or fail when the provided token is missing permissions. By default pull requests from a fork do not have access to secrets and get a read only github token, resulting in a failure to update tags.'
+  commentOnDirty:
+    description: 'String. Comment to add when the pull request is conflicting. Supports markdown.'
+  removeDirtyComment:
+    description: 'Boolean. If true, previously created dirty comments will be removed'
+  commentOnClean:
+    description: 'String. Comment to add when the pull request is not conflicting anymore. Supports markdown.'
+  skipDraft:
+    description: 'Boolean. Do not comment or attach a label on draft PRs'
+ouputs:
+  prDirtyStatuses:
+    description: 'Object-map. The keys are pull request numbers and their values whether a PR is dirty or not.'
 runs:
   using: "node20"
   main: "dist/index.js"
 author: "Sebastian Silbermann"
 branding:
-  icon: "activity"
-  color: "black"
+  icon: 'activity'
+  color: 'black'
