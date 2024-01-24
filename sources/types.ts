@@ -26,7 +26,7 @@ export interface CheckDirtyContext {
 export interface RepositoryResponse {
   repository: {
     pullRequests: {
-      nodes: Array<{
+      nodes: {
         mergeable: string
         number: number
         permalink: string
@@ -37,9 +37,9 @@ export interface RepositoryResponse {
         }
         updatedAt: string
         labels: {
-          nodes: Array<{ name: string }>
+          nodes: { name: string }[]
         }
-      }>
+      }[]
       pageInfo: {
         endCursor: string
         hasNextPage: boolean
