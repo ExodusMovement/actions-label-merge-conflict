@@ -28,7 +28,7 @@ jobs:
       - name: Grant read access to private registry
         run: yarn config set --home 'npmRegistries["//registry.npmjs.org/"].npmAuthToken' "${{ secrets.NPM_TOKEN }}"
       - name: Install dependencies
-        run: yarn
+        run: yarn --immutable
       - name: Format
         run: yarn format:check
       - name: Test
