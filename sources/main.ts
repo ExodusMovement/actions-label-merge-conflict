@@ -14,6 +14,7 @@ function getBranchName(ref: string): string | null {
   if (ref.startsWith('refs/heads/')) {
     return ref.replace(/^refs\/heads\//, '')
   }
+
   return null
 }
 
@@ -121,6 +122,7 @@ async function checkDirty(context: CheckDirtyContext): Promise<Record<number, bo
         if (pullRequest.isDraft && skipDraft) {
           break // only breaking in CONFLICTING case because we're fine with labels being removed
         }
+
         info(`add "${dirtyLabel}", remove "${removeOnDirtyLabel || 'nothing'}"`)
         // for labels PRs and issues are the same
         const [addedDirtyLabel] = await Promise.all([
@@ -139,6 +141,7 @@ async function checkDirty(context: CheckDirtyContext): Promise<Record<number, bo
             },
           })
         }
+
         dirtyStatuses[pullRequest.number] = true
         break
       case 'MERGEABLE':
@@ -199,6 +202,7 @@ async function checkDirty(context: CheckDirtyContext): Promise<Record<number, bo
       })),
     }
   }
+
   return dirtyStatuses
 }
 
@@ -208,7 +212,7 @@ async function checkDirty(context: CheckDirtyContext): Promise<Record<number, bo
  */
 async function addLabelIfNotExists(
   labelName: string,
-  issue: { number: number; labels: { nodes: Array<{ name: string }> } },
+  issue: { number: number; labels: { nodes: { name: string }[] } },
   { client }: { client: GitHub }
 ): Promise<boolean> {
   core.debug(JSON.stringify(issue, null, 2))
@@ -239,6 +243,7 @@ async function addLabelIfNotExists(
         } else {
           throw new Error(`error adding "${labelName}": ${error}`)
         }
+
         return false
       }
     )
@@ -246,7 +251,7 @@ async function addLabelIfNotExists(
 
 async function removeLabelIfExists(
   labelName: string,
-  issue: { number: number; labels: { nodes: Array<{ name: string }> } },
+  issue: { number: number; labels: { nodes: { name: string }[] } },
   { client }: { client: GitHub }
 ): Promise<boolean> {
   const hasLabel = issue.labels.nodes.some((label) => label.name === labelName)
